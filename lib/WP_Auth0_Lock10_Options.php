@@ -105,7 +105,9 @@ class WP_Auth0_Lock10_Options {
       $interim_login = false;
     }
 
-    $stateObj = array( "interim" => $interim_login, "uuid" =>uniqid() );
+	  $uniq_id = get_auth0_uniqid();
+	  setcookie( WPA0_UUID_COOKIE, $uniq_id, time() + MINUTE_IN_SECONDS );
+	  $stateObj = array( "interim" => $interim_login, "uuid" =>$uniq_id );
     if ( !empty( $redirect_to ) ) {
       $stateObj["redirect_to"] = addslashes( $redirect_to );
     }
