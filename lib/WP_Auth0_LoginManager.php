@@ -28,31 +28,33 @@ class WP_Auth0_LoginManager {
     add_action( 'template_redirect', array( $this, 'init_auth0' ), 1 );
   }
 
+  /**
+   * Runs after core WP logout
+   */
   public function logout() {
     $this->end_session();
 
-    $sso = $this->a0_options->get( 'sso' );
-    $slo = $this->a0_options->get( 'singlelogout' );
-    $client_id = $this->a0_options->get( 'client_id' );
-    $auto_login = absint( $this->a0_options->get( 'auto_login' ) );
+    $logout_redirect = home_url();
 
-    // TODO: Address SLO using UL
-    if ( $slo && isset( $_REQUEST['SLO'] ) ) {
-      wp_redirect( $_REQUEST['redirect_to'] );
-      die();
+    if ( (bool) $this->a0_options->get( 'singlelogout' ) ) {
+      $logout_redirect = sprintf(
+        'https://%s/v2/logout?returnTo=%s&client_id=%s&auth0Client=%s',
+        $this->a0_options->get( 'domain' ),
+        urlencode( $logout_redirect ),
+        $this->a0_options->get( 'client_id' ),
+        base64_encode( json_encode( WP_Auth0_Api_Client::get_info_headers() ) )
+      );
     }
 
-    if ( $sso ) {
-      wp_redirect( 'https://' . $this->a0_options->get( 'domain' ) . '/v2/logout?federated&returnTo=' . urlencode( home_url() ) . '&client_id='.$client_id.'&auth0Client=' . base64_encode( json_encode( WP_Auth0_Api_Client::get_info_headers() ) ) );
-      die();
-    }
-
-    if ( $auto_login ) {
-      wp_redirect( home_url() );
-      die();
-    }
+    wp_redirect( $logout_redirect );
+    die();
   }
 
+  /**
+   * End the current PHP session, if there is one
+   *
+   * @see https://secure.php.net/manual/en/function.session-destroy.php
+   */
   public function end_session() {
     if ( session_id() ) {
       session_destroy();
